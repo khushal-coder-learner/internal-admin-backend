@@ -1,4 +1,5 @@
 from uuid import UUID
+from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
@@ -19,7 +20,7 @@ def log_activity(
         entity_id=entity_id,
         action=action,
         performed_by=performed_by,
-        details=details,
+        details=dict(details) if details else None,
     )
 
     db.add(activity)
@@ -27,7 +28,7 @@ def log_activity(
 def list_activity_logs(
     db: Session,
     *,
-    page: int,
+    cursor: datetime | None = None,
     limit: int,
     entity_type: str | None = None,
     entity_id: UUID | None = None,
@@ -48,9 +49,13 @@ def list_activity_logs(
     if action:
         stmt = stmt.where(ActivityLog.action == action)
 
-    stmt = stmt.order_by(ActivityLog.created_at.desc())
+    #Keyset Condition
+    if cursor:
+        stmt = stmt.where(ActivityLog.created_at < cursor)
 
-    offset = (page - 1) * limit
-    stmt = stmt.offset(offset).limit(limit)
+    stmt = (
+        stmt.order_by(ActivityLog.created_at.desc())
+        .limit(limit)
+        )
 
     return db.scalars(stmt).all()

@@ -9,8 +9,8 @@ from app.schemas.user import UserUpdate
 def get_current_user_profile(*, current_user: User) -> User:
     return current_user
 
-def list_users(db: Session):
-    return db.query(User).order_by(User.created_at.desc()).all()
+def list_users(db: Session, *, limit: int=50, offset: int = 0):
+    return db.query(User).order_by(User.created_at.desc()).limit(limit).offset(offset).all()
 
 def create_user(
     db: Session,
@@ -34,8 +34,6 @@ def create_user(
     )
 
     db.add(user)
-    db.commit()
-    db.refresh(user)
 
     return user
 
@@ -64,9 +62,6 @@ def update_user(
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
 
-    db.commit()
-    db.refresh(user)
-
     return user
 
 def deactivate_user(
@@ -89,6 +84,6 @@ def deactivate_user(
             detail="You cannot delete yourself",
         )
 
-    user.is_active = False
-
-    db.commit()
+    db.query(User).filter(User.id == user_id).update(
+    {User.is_active: False}
+    )

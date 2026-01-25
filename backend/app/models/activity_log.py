@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
@@ -40,4 +40,10 @@ class ActivityLog(TimestampMixin ,Base):
     details: Mapped[dict | None] = mapped_column(
         JSONB,
         nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_activity_logs_entity", "entity_type", "entity_id"),
+        Index("ix_activity_logs_performed_by", "performed_by"),
+        Index("ix_activity_logs_action", "action"),
     )

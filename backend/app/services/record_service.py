@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from uuid import UUID
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.models.record import Record
 from app.models.user import User
@@ -35,12 +36,7 @@ def create_record(
         },
     )
 
-    db.commit()
-    db.refresh(record)
     return record
-
-
-from sqlalchemy import select
 
 def list_records(
     db: Session,
@@ -49,7 +45,7 @@ def list_records(
     page: int,
     limit: int,
     status: str | None = None,
-    assigned_to: str | None = None,
+    assigned_to: UUID | None = None,
     search: str | None = None,
 ):
     stmt = select(Record).where(Record.is_deleted == False)
@@ -125,8 +121,6 @@ def update_record(
         },
     )
 
-    db.commit()
-    db.refresh(record)
     return record
 
 def change_record_status(
@@ -165,8 +159,6 @@ def change_record_status(
         },
     )
 
-    db.commit()
-    db.refresh(record)
     return record
 
 def assign_record(
@@ -197,8 +189,6 @@ def assign_record(
         },
     )
 
-    db.commit()
-    db.refresh(record)
     return record
 
 def soft_delete_record(
@@ -227,8 +217,6 @@ def soft_delete_record(
             "soft_delete": True
         },
     )
-
-    db.commit()
 
 
 def _ensure_record_edit_permission(

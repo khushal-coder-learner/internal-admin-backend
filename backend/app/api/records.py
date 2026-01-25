@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -8,8 +8,6 @@ from app.services.record_service import create_record, list_records, update_reco
 from app.models.user import User
 
 from typing import List
-from fastapi import Query
-
 from uuid import UUID
 
 
@@ -37,7 +35,7 @@ def list_records_endpoint(
     page: int = Query(1, ge=1),
     limit: int = Query(20, le=100),
     status: str | None = None,
-    assigned_to: str | None = None,
+    assigned_to: UUID | None = None,
     search: str | None = None,
 ):
     return list_records(

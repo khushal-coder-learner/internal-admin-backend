@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import String, Text, Boolean, ForeignKey
+from sqlalchemy import String, Text, Boolean, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -12,7 +12,7 @@ class Record(TimestampMixin ,Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=uuid.uuid4
+        default=uuid.uuid4,
     )
 
     title: Mapped[str] = mapped_column(
@@ -28,22 +28,29 @@ class Record(TimestampMixin ,Base):
     status: Mapped[str] = mapped_column(
         String,
         nullable=False,
-        default="new"
+        default="new",
+        index=True
     )
 
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
-        nullable=True
+        nullable=True,
+        index=True
     )
 
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
-        nullable=False
+        nullable=False,
     )
 
     is_deleted: Mapped[bool] = mapped_column(
         Boolean,
         default=False
+    )
+
+    __table_args__ = (
+        Index("ix_records_assigned_to", "assigned_to"),
+        Index("ix_records_status", "status"),
     )
