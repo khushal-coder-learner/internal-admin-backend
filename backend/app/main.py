@@ -8,6 +8,10 @@ app = FastAPI(
     version="0.1.0",
 )
 
+@app.get("/")
+def home():
+    return {"message": "Hello, It's an internal admin backend system."}
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
