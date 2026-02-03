@@ -31,12 +31,12 @@ def refresh(
     payload: RefreshRequest,
     db: Session = Depends(get_db),
 ):
-    access_token = refresh_access_token(
+    access_token, refresh_token = refresh_access_token(
         db=db,
         refresh_token=payload.refresh_token,
     )
 
     return {
         "access_token": access_token,
-        "refresh_token": payload.refresh_token,
+        "refresh_token": refresh_token,
     }

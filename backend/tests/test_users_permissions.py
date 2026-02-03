@@ -1,17 +1,5 @@
 from app.core.security import create_access_token
-from app.models.user import User
-import uuid
-
-def create_test_user(db, role="admin"):
-    user = User(
-        email=f"{uuid.uuid4()}@example.com",
-        hashed_password="hashed",
-        role=role,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+from tests.helpers import create_test_user
 
 def test_staff_can_access_me_endpoint(client, db):
     staff = create_test_user(db, role="staff")

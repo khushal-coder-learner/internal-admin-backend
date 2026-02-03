@@ -35,6 +35,8 @@ def create_user(
 
     db.add(user)
 
+    db.flush()
+
     return user
 
 def update_user(

@@ -13,6 +13,7 @@ class Record(TimestampMixin ,Base):
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
+        index=True
     )
 
     title: Mapped[str] = mapped_column(
@@ -48,9 +49,4 @@ class Record(TimestampMixin ,Base):
     is_deleted: Mapped[bool] = mapped_column(
         Boolean,
         default=False
-    )
-
-    __table_args__ = (
-        Index("ix_records_assigned_to", "assigned_to"),
-        Index("ix_records_status", "status"),
     )

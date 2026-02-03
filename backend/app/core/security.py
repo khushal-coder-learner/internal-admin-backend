@@ -3,6 +3,9 @@ from typing import Any
 from fastapi import HTTPException, status
 from jose import jwt, JWTError
 from passlib.context import CryptContext
+import hmac
+import uuid
+import hashlib
 
 from app.core.config import settings
 
@@ -15,6 +18,12 @@ def hash_password(password: str) -> str:
     """
     return pwd_context.hash(password)
 
+def hash_refresh_token(token: str) -> str:
+    return hmac.new(
+        settings.secret_key.encode(),
+        token.encode(),
+        hashlib.sha256,
+    ).hexdigest()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
@@ -57,6 +66,7 @@ def create_refresh_token(subject: str) -> str:
     payload = {
         "sub": subject,
         "type": "refresh",
+        "jti": str(uuid.uuid4()),
         "exp": datetime.now()
         + timedelta(days=settings.refresh_token_expire_days),
     }
