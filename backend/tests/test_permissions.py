@@ -1,5 +1,5 @@
 from app.core.security import create_access_token
-from tests.helpers import create_test_user
+from tests.helpers import create_test_user, login_user, auth_headers
 
 def test_staff_can_only_see_assigned_records(client, db):
     admin = create_test_user(db, role="admin")
@@ -95,3 +95,15 @@ def test_staff_cannot_assign_or_delete_record(client, db):
         headers=staff_headers,
     )
     assert delete_response.status_code == 403
+
+def test_staff_cannot_delete_user(client, db):
+    staff = create_test_user(db, role="staff")
+    tokens = login_user(client, email=staff.email, password="password123")
+
+    res = client.delete(
+        "/users/some-id",
+        headers=auth_headers(tokens["access_token"]),
+    )
+
+    assert res.status_code == 403
+

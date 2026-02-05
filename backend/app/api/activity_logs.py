@@ -5,16 +5,17 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.core.dependencies import require_role
+from app.core.dependencies import require_permission
 from app.schemas.activity_log import ActivityLogResponse
 from app.services.activity_service import list_activity_logs
+from app.core.permissions import Permission
 
 router = APIRouter(
     prefix="/activity-logs",
     tags=["Activity Logs"],
 )
 
-@router.get("", response_model=List[ActivityLogResponse], dependencies=[Depends(require_role("admin"))])
+@router.get("", response_model=List[ActivityLogResponse], dependencies=[Depends(require_permission(Permission.ACTIVITY_VIEW))])
 def get_activity_logs(
     *,
     db: Session = Depends(get_db),

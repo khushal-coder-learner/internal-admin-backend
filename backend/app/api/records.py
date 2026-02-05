@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.core.dependencies import get_current_user, require_role
+from app.core.dependencies import get_current_user, require_permission
 from app.schemas.record import RecordCreate, RecordResponse, RecordUpdate, RecordStatusUpdate, RecordAssign
 from app.services.record_service import create_record, list_records, update_record, change_record_status, assign_record, soft_delete_record
 from app.models.user import User
+from app.core.permissions import Permission
 
 from typing import List
 from uuid import UUID
@@ -76,7 +77,7 @@ def change_status_endpoint(
         current_user=current_user,
     )
 
-@router.post("/{record_id}/assign", response_model=RecordResponse, dependencies=[Depends(require_role("admin"))]
+@router.post("/{record_id}/assign", response_model=RecordResponse, dependencies=[Depends(require_permission(Permission.RECORD_ASSIGN))]
 )
 def assign_record_endpoint(
     record_id: UUID,
@@ -91,7 +92,7 @@ def assign_record_endpoint(
         current_user=current_user,
     )
 
-@router.delete("/{record_id}", status_code=204, dependencies=[Depends(require_role("admin"))])
+@router.delete("/{record_id}", status_code=204, dependencies=[Depends(require_permission(Permission.RECORD_DELETE))])
 def delete_record_endpoint(
     record_id: UUID,
     db: Session = Depends(get_db),

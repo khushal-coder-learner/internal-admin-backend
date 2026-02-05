@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.core.dependencies import get_db, get_current_user, require_role
+from app.core.dependencies import get_db, get_current_user, require_permission
 from app.models.user import User
+from app.core.permissions import Permission
 from app.schemas.user import UserResponse, UserCreate, UserUpdate
 from app.services.user_service import (
     get_current_user_profile,
@@ -25,7 +26,7 @@ def read_me(
 @router.get(
     "",
     response_model=list[UserResponse],
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_permission(Permission.USER_VIEW))],
 )
 def read_users(
     db: Session = Depends(get_db),
@@ -35,7 +36,7 @@ def read_users(
 @router.post(
     "",
     response_model=UserResponse,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_permission(Permission.USER_CREATE))],
 )
 def create_user_endpoint(
     payload: UserCreate,
@@ -51,7 +52,7 @@ def create_user_endpoint(
 @router.patch(
     "/{user_id}",
     response_model=UserResponse,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_permission(Permission.USER_UPDATE))],
 )
 def update_user_endpoint(
     user_id: UUID,
@@ -69,7 +70,7 @@ def update_user_endpoint(
 @router.delete(
     "/{user_id}",
     status_code=204,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_permission(Permission.USER_DEACTIVATE))],
 )
 def delete_user_endpoint(
     user_id: UUID,
