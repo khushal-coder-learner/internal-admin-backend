@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, UTC
 from sqlalchemy.orm import Session
+from redis.asyncio import Redis
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
 from app.core.security import (
@@ -58,12 +59,17 @@ def authenticate_user(
 
     return access_token, refresh_token
 
-def refresh_access_token(
+async def refresh_access_token(
     db: Session,
     *,
     refresh_token: str,
+    redis: Redis
 ):
-    user_id = decode_refresh_token(refresh_token)
+    payload = decode_refresh_token(refresh_token)
+
+    user_id = payload["sub"]
+    jti = payload["jti"]
+    exp = payload["exp"]
 
     user = db.get(User, user_id)
 
@@ -91,12 +97,33 @@ def refresh_access_token(
         db.commit()
         raise HTTPException(status_code=401, detail="Refresh token expired")
     
+    ttl_seconds = max(
+        int(exp - datetime.now(tz=UTC).timestamp()),
+        1
+    )
+
+
+    used = await redis.set(
+        f"rt_used:{jti}",
+        1,
+        nx=True,
+        ex=ttl_seconds,
+    )
+
+    if not used:
+        revoke_refresh_token(db, user_id=user_id)
+        db.commit()
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token replay detected",
+        )
+    
     incoming_hash = hash_refresh_token(refresh_token)
 
     if not hmac.compare_digest(incoming_hash, db_token.token_hash):
         revoke_refresh_token(db, user_id=user_id)
         db.commit()
-        raise HTTPException(status_code=401, detail="Refresh token reuse detected")
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     access_token = create_access_token(
         subject=str(user.id),
@@ -143,4 +170,4 @@ def store_refresh_token(
 def revoke_refresh_token(db: Session, *, user_id):
     token = db.get(RefreshToken, user_id)
     if token:
-        token.revoked_at = datetime.utcnow()
+        token.revoked_at = datetime.now()

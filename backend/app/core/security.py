@@ -77,7 +77,7 @@ def create_refresh_token(subject: str) -> str:
         algorithm=settings.jwt_algorithm,
     )
 
-def decode_refresh_token(token: str) -> str:
+def decode_refresh_token(token: str) -> dict:
     try:
         payload = jwt.decode(
             token,
@@ -91,7 +91,7 @@ def decode_refresh_token(token: str) -> str:
                 detail="Invalid refresh token",
             )
 
-        return payload["sub"]
+        return payload
 
     except JWTError:
         raise HTTPException(

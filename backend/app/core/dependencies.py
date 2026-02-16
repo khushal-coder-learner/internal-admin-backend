@@ -5,6 +5,8 @@ from app.core.permissions import Permission, ROLE_PERMISSIONS
 from app.db.session import get_db
 from app.models.user import User
 from app.core.security import decode_token
+from redis.asyncio import Redis
+from app.core.redis import get_redis_client
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -31,6 +33,7 @@ def get_current_user(
 
     return user
 
+
 def require_permission(permission: Permission):
     def dependency(current_user: User = Depends(get_current_user)):
         allowed = ROLE_PERMISSIONS.get(current_user.role, set())
@@ -44,3 +47,7 @@ def require_permission(permission: Permission):
         return current_user
 
     return dependency
+
+
+def get_redis() -> Redis:
+    return get_redis_client()

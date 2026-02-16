@@ -1,7 +1,9 @@
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from redis.asyncio import Redis
 
 from app.main import app
 from app.db.base import Base
@@ -23,8 +25,9 @@ def db():
 
 @pytest.fixture
 def client():
-    return TestClient(app)
-
+    with TestClient(app) as client:
+        yield client
+        
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
     Base.metadata.create_all(bind=engine)
@@ -39,4 +42,15 @@ def override_get_db(db):
     app.dependency_overrides[get_db] = _get_db_override
     yield
     app.dependency_overrides.clear()
+
+@pytest_asyncio.fixture(autouse=True)
+async def clear_redis():
+    redis = Redis.from_url(
+        "redis://localhost:6380/0",
+        decode_responses=True,
+    )
+    await redis.flushdb()
+    yield
+    await redis.flushdb()
+    await redis.aclose()
 

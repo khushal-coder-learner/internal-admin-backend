@@ -7,17 +7,22 @@ class Settings(BaseSettings):
     version: str = "0.1.0"
     env: str = "development"
 
-    database_url: str = ""
-    test_database_url: str = ""
-    secret_key: str = ""
-    jwt_secret_key: str = ""
+    database_url: str
+    test_database_url: str
+    redis_url: str
+    test_redis_url: str
+
+    secret_key: str
+    jwt_secret_key: str
+
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 3
 
     model_config = SettingsConfigDict(
         env_file=".env",
+        case_sensitive=False,  # optional but recommended
     )
 
 
-settings = Settings()
+settings = Settings() # type: ignore
