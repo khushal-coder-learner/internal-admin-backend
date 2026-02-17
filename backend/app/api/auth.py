@@ -6,13 +6,14 @@ from app.db.session import get_db
 from app.schemas.auth import LoginRequest, TokenResponse, RefreshRequest
 from app.services.auth_service import authenticate_user, refresh_access_token
 from app.core.redis import get_redis_client
+from app.core.dependencies import rate_limit_login
 
 router = APIRouter(
     prefix="/auth",
     tags=["Auth"],
 )
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(rate_limit_login())])
 def login(
     payload: LoginRequest,
     db: Session = Depends(get_db),

@@ -90,3 +90,13 @@ def test_refresh_token_rotation_still_valid(db, client):
     )
     assert resp2.status_code == 200
 
+def test_login_rate_limit(client, db):
+
+    user = create_test_user(db)
+
+    for _ in range(5):
+        response = client.post("/auth/login", json={"email": user.email, "password": "password123"})
+    
+    response = client.post("/auth/login", json={"email": user.email, "password": "password123"})
+    
+    assert response.status_code == 429

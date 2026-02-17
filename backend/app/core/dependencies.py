@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.core.permissions import Permission, ROLE_PERMISSIONS
@@ -7,6 +7,7 @@ from app.models.user import User
 from app.core.security import decode_token
 from redis.asyncio import Redis
 from app.core.redis import get_redis_client
+from app.core.rate_limit import enforce_rate_limit
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -51,3 +52,23 @@ def require_permission(permission: Permission):
 
 def get_redis() -> Redis:
     return get_redis_client()
+
+
+def rate_limit_login(limit: int = 5, window: int = 60):
+    async def dependency(
+        request: Request,
+        redis: Redis = Depends(get_redis_client),
+    ):
+        if request.client:
+
+            ip = request.client.host
+            key = f"rl:login:{ip}"
+
+            await enforce_rate_limit(
+                redis,
+                key=key,
+                limit=limit,
+                window_seconds=window,
+            )
+
+    return dependency
