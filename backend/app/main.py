@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.api import records, activity_logs, auth, users, health
+from app.api import records, activity_logs, auth, users, health, exports
 from app.core.redis import init_redis, close_redis
 
 
@@ -39,6 +39,7 @@ app.include_router(activity_logs.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(health.router)
+app.include_router(exports.router)
 
 
 if __name__ == "__main__":

@@ -43,14 +43,15 @@ def override_get_db(db):
     yield
     app.dependency_overrides.clear()
 
+
 @pytest_asyncio.fixture(autouse=True)
-async def clear_redis():
+async def redis_client():
     redis = Redis.from_url(
         "redis://localhost:6380/0",
         decode_responses=True,
     )
     await redis.flushdb()
-    yield
+    yield redis
     await redis.flushdb()
     await redis.aclose()
 

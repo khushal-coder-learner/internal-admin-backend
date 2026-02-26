@@ -7,7 +7,7 @@ _redis: Redis | None = None
 async def init_redis() -> None:
     global _redis
     _redis = Redis.from_url(
-        settings.test_redis_url,
+        settings.redis_url,
         decode_responses=True,
     )
 

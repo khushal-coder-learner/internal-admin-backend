@@ -3,5 +3,6 @@
 from app.models.user import User
 from app.models.record import Record
 from app.models.activity_log import ActivityLog
+from app.models.export import ExportJob
 
-__all__ = ["User", "Record", "ActivityLog"]
+__all__ = ["User", "Record", "ActivityLog", "ExportJob"]
