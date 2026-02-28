@@ -34,5 +34,5 @@ alembic/__pycache__/
 htmlcov/
 
 #Exports
-/storage
+backend/app/storage/exports
 .csv

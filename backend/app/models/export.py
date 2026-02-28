@@ -26,3 +26,11 @@ class ExportJob(TimestampMixin, Base):
     file_path: Mapped[str | None]
 
     processing_started_at: Mapped[datetime | None]
+
+    attempts: Mapped[int] = mapped_column(default=0)
+
+    max_attempts: Mapped[int] = mapped_column(default=3)
+
+    next_run_at: Mapped[datetime | None]
+    
+    last_error: Mapped[str | None]
