@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from redis.asyncio import Redis
+from app.core.dependencies import get_redis
 
 from app.main import app
 from app.db.base import Base
@@ -44,10 +45,10 @@ def override_get_db(db):
     app.dependency_overrides.clear()
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def redis_client():
+@pytest_asyncio.fixture
+async def test_redis():
     redis = Redis.from_url(
-        "redis://localhost:6380/0",
+        settings.test_redis_url,
         decode_responses=True,
     )
     await redis.flushdb()
@@ -55,3 +56,11 @@ async def redis_client():
     await redis.flushdb()
     await redis.aclose()
 
+@pytest.fixture(autouse=True)
+def override_redis(test_redis):
+    async def _get_redis_override():
+        return test_redis
+
+    app.dependency_overrides[get_redis] = _get_redis_override
+    yield
+    app.dependency_overrides.clear()

@@ -55,7 +55,7 @@ async def test_job_fails_after_max_attempts(db, monkeypatch):
     assert job.attempts == 3
 
 @pytest.mark.asyncio
-async def test_no_double_counts_on_crash(db, redis_client):
+async def test_no_double_counts_on_crash(db, test_redis):
 
     job = ExportJob(
         status=ExportStatus.processing,
@@ -67,16 +67,16 @@ async def test_no_double_counts_on_crash(db, redis_client):
     db.add(job)
     db.commit()
 
-    await redis_client.lpush('queue:processing', job.id)
+    await test_redis.lpush('queue:processing', job.id)
 
-    await recover_stuck_jobs(db, redis_client)
+    await recover_stuck_jobs(db, test_redis)
 
     assert job.attempts == 1
     assert job.status == ExportStatus.pending
     assert job.next_run_at is not None
 
 @pytest.mark.asyncio
-async def test_no_retries_on_recovery_after_max_attempts(db, redis_client):
+async def test_no_retries_on_recovery_after_max_attempts(db, test_redis):
 
     job = ExportJob(
         status=ExportStatus.processing,
@@ -88,11 +88,11 @@ async def test_no_retries_on_recovery_after_max_attempts(db, redis_client):
     db.add(job)
     db.commit()
 
-    await redis_client.lpush('queue:processing', job.id)
+    await test_redis.lpush('queue:processing', job.id)
 
-    await recover_stuck_jobs(db, redis_client)
+    await recover_stuck_jobs(db, test_redis)
 
-    processing_queue = await redis_client.lrange('queue:processing', 0, -1)
+    processing_queue = await test_redis.lrange('queue:processing', 0, -1)
 
     assert job.status == ExportStatus.failed
     assert job.id not in processing_queue
