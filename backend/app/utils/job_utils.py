@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from app.models.export import ExportStatus, ExportJob
+from backend.app.models.job import ExportStatus, ExportJob
 
 def compute_backoff(attempts: int) -> timedelta:
     base = 10          # seconds

@@ -2,19 +2,23 @@ from sqlalchemy.orm import Session
 from fastapi import Depends, APIRouter, HTTPException
 from redis.asyncio import Redis
 from app.core.dependencies import get_db, get_redis
-from app.models.export import ExportJob, ExportStatus
+from app.models.job import Job, JobStatus
+from app.jobs.types import JobType
 
-QUEUE_NAME = "queue:exports"
+QUEUE_NAME = "queue:jobs"
 
 router = APIRouter()
 
-@router.post("/exports")
+@router.post("/jobs")
 async def create_export(
     db: Session = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
 
-    job = ExportJob(status=ExportStatus.pending)
+    job = Job(
+        type = JobType.export,
+        status=JobStatus.pending,
+        payload = {})
 
     db.add(job)
     db.commit()
@@ -24,13 +28,13 @@ async def create_export(
 
     return {"job_id": job.id}
 
-@router.get("/exports/{job_id}")
+@router.get("/jobs/{job_id}")
 def get_export(job_id: int, db: Session = Depends(get_db)):
-    job = db.get(ExportJob, job_id)
+    job = db.get(Job, job_id)
     if not job:
         raise HTTPException(404)
 
     return {
         "status": job.status,
-        "file_path": job.file_path
+        "payload": job.payload
     }

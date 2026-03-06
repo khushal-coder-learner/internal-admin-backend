@@ -3,7 +3,7 @@ from app.db.base import Base
 from app.models.user import User
 from app.models.record import Record
 from app.models.activity_log import ActivityLog
-from app.models.export import ExportJob
+from app.models.job import Job
 
 from sqlalchemy import create_engine
 

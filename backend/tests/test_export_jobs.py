@@ -1,6 +1,6 @@
 import pytest
-from app.models.export import ExportJob, ExportStatus
-from app.services.export_service import process_job, recover_stuck_jobs
+from backend.app.models.job import ExportJob, ExportStatus
+from backend.app.services.job_service import process_job, recover_stuck_jobs
 from datetime import datetime, timedelta
 
 @pytest.mark.asyncio

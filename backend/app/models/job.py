@@ -1,29 +1,33 @@
-from sqlalchemy import Enum
+from sqlalchemy import Enum, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 import enum
 from datetime import datetime
 
 from app.db.base import Base
 from app.models.mixins import TimestampMixin
+from app.jobs.types import JobType
 
-class ExportStatus(str, enum.Enum):
+class JobStatus(str, enum.Enum):
     pending = "pending"
     processing = "processing"
     completed = "completed"
     failed = "failed"
 
 
-class ExportJob(TimestampMixin, Base):
-    __tablename__ = "export_jobs"
+class Job(TimestampMixin, Base):
+    __tablename__ = "jobs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    status: Mapped[ExportStatus] = mapped_column(
-        Enum(ExportStatus),
-        default=ExportStatus.pending,
+    type: Mapped[JobType] = mapped_column(Enum(JobType), nullable=False)
+
+    status: Mapped[JobStatus] = mapped_column(
+        Enum(JobStatus),
+        default=JobStatus.pending,
         nullable=False
     )
-    file_path: Mapped[str | None]
+
+    payload: Mapped[dict] = mapped_column(JSON, nullable=True)
 
     processing_started_at: Mapped[datetime | None]
 

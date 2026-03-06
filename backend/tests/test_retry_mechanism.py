@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timedelta
-from app.models.export import ExportJob, ExportStatus
-from app.services.export_service import process_job, recover_stuck_jobs
+from backend.app.models.job import ExportJob, ExportStatus
+from backend.app.services.job_service import process_job, recover_stuck_jobs
 
 @pytest.mark.asyncio
 async def test_retry_schedules_backoff(db, monkeypatch):

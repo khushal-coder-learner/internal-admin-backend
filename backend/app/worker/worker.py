@@ -2,7 +2,7 @@ import asyncio
 from typing import Tuple, cast
 from redis.asyncio import Redis
 from app.db.session import SessionLocal
-from app.services.export_service import process_job, recover_stuck_jobs
+from backend.app.services.job_service import process_job, recover_stuck_jobs
 from app.core.config import settings
 
 QUEUE_NAME = "queue:exports"
