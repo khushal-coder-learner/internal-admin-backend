@@ -18,11 +18,17 @@ TestingSessionLocal = sessionmaker(bind=engine)
 
 @pytest.fixture
 def db():
-    session = TestingSessionLocal()
+    connection = engine.connect()
+    transaction = connection.begin()
+
+    session = TestingSessionLocal(bind=connection)
+
     try:
         yield session
     finally:
         session.close()
+        transaction.rollback()
+        connection.close()
 
 @pytest.fixture
 def client():

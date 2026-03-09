@@ -1,3 +1,5 @@
+import asyncio
+
 from app.models.job import Job, JobStatus
 from app.utils.job_utils import schedule_retry_or_fail
 from app.jobs.registry import JOB_REGISTRY
@@ -9,7 +11,7 @@ JOB_TIMEOUT_SECONDS = 300
 QUEUE_PROCESSING = "queue:processing"
 QUEUE_PENDING = "queue:jobs"
 
-async def process_job(db: Session, job_id: int):
+async def process_job(*, db: Session, job_id: int, redis: Redis):
     
     job = db.get(Job, job_id)
 
@@ -27,15 +29,17 @@ async def process_job(db: Session, job_id: int):
     executor = JOB_REGISTRY[job.type]
 
     try:
-        executor(db, job)
+        result = executor(db, job, redis)
+        if asyncio.iscoroutine(result):
+            await result
 
         job.status = JobStatus.completed
         job.next_run_at = None
-        job.last_error = None 
+        job.last_error = None
     except Exception as e:
         job.last_error = str(e)
         schedule_retry_or_fail(job)
-        
+
     db.commit()
 
 async def recover_stuck_jobs(db, redis: Redis):

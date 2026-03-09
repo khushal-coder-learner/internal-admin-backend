@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.api import records, activity_logs, auth, users, health
 from app.core.redis import init_redis, close_redis
-from backend.app.api import jobs
+from app.api import jobs
 
 
 @asynccontextmanager
