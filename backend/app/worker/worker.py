@@ -4,6 +4,7 @@ from redis.asyncio import Redis
 from app.db.session import SessionLocal
 from app.services.job_service import process_job, recover_stuck_jobs
 from app.core.config import settings
+from app.jobs.scheduler import enqueue_scheduled_jobs
 
 QUEUE_NAME = "queue:jobs"
 QUEUE_PROCESSING = "queue:processing"
@@ -14,6 +15,8 @@ async def worker():
         await recover_stuck_jobs(db, redis)
 
     while True:
+        await enqueue_scheduled_jobs(db, redis)
+
         job_id = await redis.brpoplpush(
             QUEUE_NAME,
             QUEUE_PROCESSING
