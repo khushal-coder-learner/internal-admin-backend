@@ -7,7 +7,7 @@ from app.models.job import Job
 from app.models.job import JobType
 
 
-async def execute_bulk_user_email_dispatch(db: Session, job, redis: Redis):
+async def execute_bulk_user_email_dispatch(db: Session, redis: Redis, job):
 
     payload = job.payload
     subject = payload["subject"]

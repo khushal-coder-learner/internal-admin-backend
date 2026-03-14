@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from app.models.job import Job, JobStatus
+from sqlalchemy.orm.attributes import flag_modified
 
 def compute_backoff(attempts: int) -> timedelta:
     base = 10          # seconds

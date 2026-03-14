@@ -12,6 +12,7 @@ async def test_retry_schedules_backoff(db, test_redis, monkeypatch):
         status=JobStatus.pending,
         attempts=0,
         max_attempts=3,
+        payload={"export_type": "records"},
     )
     db.add(job)
     db.commit()
@@ -20,8 +21,8 @@ async def test_retry_schedules_backoff(db, test_redis, monkeypatch):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(
-        "app.jobs.executors.export.generate_csv",
-        fake_generate,
+        "app.jobs.executors.export.EXPORT_GENERATORS",
+        {"records": fake_generate},
     )
 
     await process_job(db=db, job_id=job.id, redis=test_redis)
@@ -41,6 +42,7 @@ async def test_job_fails_after_max_attempts(db, test_redis, monkeypatch):
         status=JobStatus.pending,
         attempts=2,
         max_attempts=3,
+        payload={"export_type": "records"},
     )
     db.add(job)
     db.commit()
@@ -49,8 +51,8 @@ async def test_job_fails_after_max_attempts(db, test_redis, monkeypatch):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(
-        "app.jobs.executors.export.generate_csv",
-        fake_generate,
+        "app.jobs.executors.export.EXPORT_GENERATORS",
+        {"records": fake_generate},
     )
 
     await process_job(db=db, job_id=job.id, redis=test_redis)

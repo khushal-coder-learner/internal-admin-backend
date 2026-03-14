@@ -1,26 +1,44 @@
 import asyncio
-from typing import Tuple, cast
+import time
 from redis.asyncio import Redis
 from app.db.session import SessionLocal
 from app.services.job_service import process_job, recover_stuck_jobs
 from app.core.config import settings
 from app.jobs.scheduler import enqueue_scheduled_jobs
+from app.jobs.executors.cleanup_exports import execute_cleanup_exports
 
 QUEUE_NAME = "queue:jobs"
 QUEUE_PROCESSING = "queue:processing"
+
+CLEANUP_INTERVAL = 60
+QUEUE_BLOCK_TIMEOUT = 5
+
 
 async def worker():
     redis = Redis.from_url(settings.redis_url)
     with SessionLocal() as db:
         await recover_stuck_jobs(db, redis)
 
+    last_cleanup = 0.0
+
     while True:
-        await enqueue_scheduled_jobs(db, redis)
+        now = time.time()
+
+        with SessionLocal() as db:
+            await enqueue_scheduled_jobs(db, redis)
+
+            if now - last_cleanup >= CLEANUP_INTERVAL:
+                await execute_cleanup_exports(db=db, redis=redis, job=None)
+                last_cleanup = now
 
         job_id = await redis.brpoplpush(
             QUEUE_NAME,
-            QUEUE_PROCESSING
+            QUEUE_PROCESSING,
+            timeout=QUEUE_BLOCK_TIMEOUT,
         ) # type: ignore
+
+        if job_id is None:
+            continue
 
         lock_key = f"lock:job:{job_id}"
 
@@ -37,7 +55,9 @@ async def worker():
         try:
             with SessionLocal() as db:
                 await process_job(db=db, job_id=int(job_id), redis=redis) # type: ignore
+
             await redis.lrem(QUEUE_PROCESSING, 0, job_id) # type: ignore
+
         finally:
             await redis.delete(lock_key)
 

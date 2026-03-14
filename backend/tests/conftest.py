@@ -1,6 +1,8 @@
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
+from pathlib import Path
+from uuid import uuid4
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from redis.asyncio import Redis
@@ -70,3 +72,25 @@ def override_redis(test_redis):
     app.dependency_overrides[get_redis] = _get_redis_override
     yield
     app.dependency_overrides.clear()
+
+@pytest.fixture(autouse=True)
+def mock_email_service(monkeypatch):
+
+    async def fake_send_email(*args, **kwargs):
+        return
+
+    monkeypatch.setattr(
+        "app.services.email_service.send_email",
+        fake_send_email,
+    )
+
+@pytest.fixture(autouse=True)
+def export_dir(monkeypatch):
+    export_path = Path("tests/.tmp") / f"exports-{uuid4()}"
+    export_path.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("EXPORT_DIR", str(export_path))
+    yield export_path
+    for path in export_path.iterdir():
+        if path.is_file():
+            path.unlink()
+    export_path.rmdir()

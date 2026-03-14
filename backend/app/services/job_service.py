@@ -29,7 +29,7 @@ async def process_job(*, db: Session, job_id: int, redis: Redis):
     executor = JOB_REGISTRY[job.type]
 
     try:
-        result = executor(db, job, redis)
+        result = executor(db, redis, job)
         if asyncio.iscoroutine(result):
             await result
 

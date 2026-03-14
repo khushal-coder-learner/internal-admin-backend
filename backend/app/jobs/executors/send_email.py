@@ -1,21 +1,22 @@
-from sqlalchemy.orm import Session
+from app.services.email_service import send_email
 from app.models.user import User
-from redis.asyncio import Redis
+from sqlalchemy.orm import Session
 
 
-def execute_send_email(db: Session, job, redis: Redis | None = None):
+async def execute_send_email(db: Session, redis, job):
+
     payload = job.payload
+    user_id = payload.get("user_id")
 
-    user_id = payload["user_id"]
-    subject = payload["subject"]
-    body = payload["body"]
+    if not user_id:
+        raise ValueError("send_email job requires a 'user_id' in the payload")
 
     user = db.get(User, user_id)
-
     if not user:
-        return
+        raise ValueError(f"User not found for id: {user_id}")
 
-    # Fake email sender for now
-    print(f"Sending email to {user.email}")
-    print(subject)
-    print(body)
+    await send_email(
+        to=user_id,
+        subject=payload["subject"],
+        body=payload["body"],
+    )
