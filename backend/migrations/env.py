@@ -4,6 +4,7 @@ from app.models.user import User
 from app.models.record import Record
 from app.models.activity_log import ActivityLog
 from app.models.job import Job
+from app.models.refresh_token import RefreshToken
 
 from sqlalchemy import create_engine
 

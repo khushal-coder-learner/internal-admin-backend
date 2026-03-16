@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     description: str = "Management-System"
     version: str = "0.1.0"
     env: str = "development"
+    frontend_origin: str = "http://localhost:5173"
 
     database_url: str
     test_database_url: str

@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.core.permissions import Permission, ROLE_PERMISSIONS
 from app.db.session import get_db
@@ -9,12 +9,15 @@ from redis.asyncio import Redis
 from app.core.redis import get_redis_client
 from app.core.rate_limit import enforce_rate_limit
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+security = HTTPBearer()
 
 def get_current_user(
     db: Session = Depends(get_db),
-    token: str = Depends(oauth2_scheme),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> User:
+    
+    token = credentials.credentials
+
     try:
         payload = decode_token(token)
         user_id = payload.get("sub")
