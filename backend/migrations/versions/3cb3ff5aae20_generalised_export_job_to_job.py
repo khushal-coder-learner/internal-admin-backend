@@ -32,13 +32,13 @@ def upgrade() -> None:
         "CREATE TYPE jobstatus AS ENUM ('pending','processing','completed','failed')"
     )
     op.execute(
-        "CREATE TYPE jobtype AS ENUM ('export')"
+        "CREATE TYPE jobtype AS ENUM ('export','send_email', 'bulk_user_email_dispatch')"
     )
 
     # Create table using Postgres enum type
     op.create_table(
         "jobs",
-        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("id", sa.UUID(), primary_key=True),
         sa.Column("type", postgresql.ENUM(name="jobtype", create_type=False), nullable=False),
         sa.Column("status", postgresql.ENUM(name="jobstatus", create_type=False), nullable=False),
         sa.Column("payload", sa.JSON(), nullable=True),

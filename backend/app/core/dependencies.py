@@ -75,3 +75,6 @@ def rate_limit_login(limit: int = 5, window: int = 60):
             )
 
     return dependency
+
+def get_request_id(request: Request):
+    return getattr(request.state, "request_id", None)

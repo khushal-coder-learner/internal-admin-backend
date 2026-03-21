@@ -1,24 +1,71 @@
 from sqlalchemy.orm import Session
-from fastapi import Depends, APIRouter, HTTPException
+from sqlalchemy import select
+from fastapi import Request, Depends, APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 from redis.asyncio import Redis
-from app.core.dependencies import get_db, get_redis
+from typing import Optional
+from app.core.permissions import Permission
+from app.core.dependencies import get_db, get_redis, get_request_id, get_current_user, require_permission
+from app.models.user import User
 from app.models.job import Job, JobStatus
 from app.jobs.types import JobType
 from app.core.security import settings
 from app.utils.file_utils import generate_signed_download_url
+from app.core.logging import get_logger
+from app.services.activity_service import log_activity
+from app.services.job_service import get_user_jobs
 
 import os
+import uuid
 import time
 import hmac
 import hashlib
+
+logger = get_logger(__name__)
 
 QUEUE_NAME = "queue:jobs"
 
 router = APIRouter()
 
-@router.get("/jobs/{job_id}")
-def get_job(job_id: int, db: Session = Depends(get_db)):
+@router.get("/jobs/me")
+async def get_my_jobs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    status: Optional[JobStatus] = Query(None),
+    job_type: Optional[JobType] = Query(None),
+    limit: int = Query(10, le=100),
+    offset: int = Query(0)
+):
+    jobs = await get_user_jobs(
+        db=db,
+        current_user=current_user,
+        status=status,
+        job_type=job_type,
+        limit=limit,
+        offset=offset
+    )
+
+    logger.info(
+        "Fetched user jobs",
+        extra={
+            "user_id": current_user.id,
+            "count": len(jobs)
+        }
+    )
+
+    return [
+        {
+            "id": job.id,
+            "type": job.type,
+            "status": job.status,
+            "progress": job.payload.get("progress", 0) if job.payload else 0,
+            "created_at": job.created_at,
+        }
+        for job in jobs
+    ]
+
+@router.get("/jobs/{job_id}", dependencies=[Depends(require_permission(Permission.JOB_VIEW))])
+def get_job(job_id: str, db: Session = Depends(get_db)):
     job = db.get(Job, job_id)
     if not job:
         raise HTTPException(404)
@@ -35,23 +82,49 @@ def get_job(job_id: int, db: Session = Depends(get_db)):
         "download_url": download_url
     }
 
-@router.post("/jobs/export")
+@router.post("/jobs/export", dependencies=[Depends(require_permission(Permission.EXPORT_JOB))])
 async def create_export(
     export_type: str,
     db: Session = Depends(get_db),
     redis: Redis = Depends(get_redis),
+    request_id: str = Depends(get_request_id),
+    current_user: User = Depends(get_current_user)
 ):
 
     job = Job(
         type = JobType.export,
+        user_id = current_user.id,
         status=JobStatus.pending,
-        payload = {"export_type": export_type})
+        payload = {"export_type": export_type},
+        request_id = request_id)
 
     db.add(job)
     db.commit()
     db.refresh(job)
 
-    await redis.lpush(QUEUE_NAME, job.id) # type: ignore
+    logger.info(
+        "Job created",
+        extra={
+            "job_id": job.id,
+            "job_type": job.type,
+            "request_id": request_id
+        }
+    )
+
+    log_activity(
+        db,
+        entity_type="job",
+        entity_id=job.id,
+        action="export_requested",
+        performed_by=current_user.id,  # IMPORTANT
+        details={
+            "job_type": job.type,
+            "export_type": export_type,
+            "request_id": request_id
+        }
+    )
+
+    await redis.lpush(QUEUE_NAME, str(job.id)) # type: ignore
 
     return {"job_id": job.id}
 
@@ -83,26 +156,53 @@ def download_export(path: str, expires: int, sig: str):
         media_type="text/csv"
     )
 
-@router.post("/jobs/send-announcement")
+@router.post("/jobs/send-announcement", dependencies=[Depends(require_permission(Permission.SEND_ANNOUNCEMENT))])
 async def send_announcement(
     subject: str,
     body: str,
     db: Session = Depends(get_db),
     redis: Redis = Depends(get_redis),
+    request_id: str = Depends(get_request_id),
+    current_user: User = Depends(get_current_user)
 ):
 
     job = Job(
         type=JobType.bulk_user_email_dispatch,
+        user_id = current_user.id,
+        status = JobStatus.pending,
         payload={
             "subject": subject,
             "body": body
-        }
+        },
+        request_id = request_id
     )
 
     db.add(job)
     db.commit()
     db.refresh(job)
 
-    await redis.lpush("queue:jobs", job.id) # type: ignore
+    logger.info(
+        "Job created",
+        extra={
+            "job_id": job.id,
+            "job_type": job.type,
+            "request_id": request_id
+        }
+    )
+
+    log_activity(
+        db,
+        entity_type="job",
+        entity_id=job.id,
+        action="announcement_requested",
+        performed_by=current_user.id,
+        details={
+            "job_type": job.type,
+            "subject": subject,
+            "request_id": request_id
+        }
+    )
+
+    await redis.lpush("queue:jobs", str(job.id)) # type: ignore
 
     return {"job_id": job.id}

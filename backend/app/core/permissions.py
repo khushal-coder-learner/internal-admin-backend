@@ -17,6 +17,11 @@ class Permission(str, Enum):
     # Activity Logs
     ACTIVITY_VIEW = "activity:view"
 
+    # Jobs
+    JOB_VIEW = "jobs:view"
+    EXPORT_JOB = "jobs:export"
+    SEND_ANNOUNCEMENT = "jobs:announcement"
+
 
 ROLE_PERMISSIONS = {
     "admin": {
@@ -30,6 +35,9 @@ ROLE_PERMISSIONS = {
         Permission.RECORD_ASSIGN,
         Permission.RECORD_DELETE,
         Permission.ACTIVITY_VIEW,
+        Permission.EXPORT_JOB,
+        Permission.SEND_ANNOUNCEMENT,
+        Permission.JOB_VIEW
     },
     "staff": {
         Permission.RECORD_CREATE,

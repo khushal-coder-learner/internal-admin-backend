@@ -1,11 +1,14 @@
 import asyncio
 import time
+
 from redis.asyncio import Redis
-from app.db.session import SessionLocal
-from app.services.job_service import process_job, recover_stuck_jobs
+
+from app.core.logging import configure_logging, get_logger
 from app.core.config import settings
-from app.jobs.scheduler import enqueue_scheduled_jobs
+from app.db.session import SessionLocal
 from app.jobs.executors.cleanup_exports import execute_cleanup_exports
+from app.jobs.scheduler import enqueue_scheduled_jobs
+from app.services.job_service import process_job, recover_stuck_jobs
 
 QUEUE_NAME = "queue:jobs"
 QUEUE_PROCESSING = "queue:processing"
@@ -13,8 +16,12 @@ QUEUE_PROCESSING = "queue:processing"
 CLEANUP_INTERVAL = 60
 QUEUE_BLOCK_TIMEOUT = 5
 
+configure_logging(service="worker")
+logger = get_logger(__name__)
+
 
 async def worker():
+    logger.info("Starting worker process")
     redis = Redis.from_url(settings.redis_url)
     with SessionLocal() as db:
         await recover_stuck_jobs(db, redis)
@@ -40,6 +47,9 @@ async def worker():
         if job_id is None:
             continue
 
+        if isinstance(job_id, bytes):
+            job_id = job_id.decode("utf-8")
+
         lock_key = f"lock:job:{job_id}"
 
         acquired = await redis.set(
@@ -50,11 +60,13 @@ async def worker():
         )
 
         if not acquired:
+            logger.warning("Skipped locked job", extra={"job_id": job_id})
             continue
 
         try:
+            logger.info("Picked up job", extra={"job_id": job_id})
             with SessionLocal() as db:
-                await process_job(db=db, job_id=int(job_id), redis=redis) # type: ignore
+                await process_job(db=db, job_id=job_id, redis=redis)
 
             await redis.lrem(QUEUE_PROCESSING, 0, job_id) # type: ignore
 
