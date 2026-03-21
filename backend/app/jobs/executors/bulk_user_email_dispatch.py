@@ -21,17 +21,19 @@ async def execute_bulk_user_email_dispatch(db: Session, redis: Redis, job):
 
         new_job = Job(
             type=JobType.send_email,
+            user_id=user_id,
             payload={
                 "user_id": str(user_id),
                 "subject": subject,
                 "body": body,
             },
+            request_id=job.request_id,
         )
 
         db.add(new_job)
         db.flush()  # assign an id so we can push it to Redis
 
-        await redis.lpush("queue:jobs", new_job.id) # type: ignore
+        await redis.lpush("queue:jobs", str(new_job.id)) # type: ignore
 
         count += 1
 

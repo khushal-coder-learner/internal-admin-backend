@@ -1,6 +1,9 @@
-from sqlalchemy import Enum, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Enum, DateTime, String, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+
 import enum
+import uuid
 from datetime import datetime
 
 from app.db.base import Base
@@ -17,24 +20,47 @@ class JobStatus(str, enum.Enum):
 class Job(TimestampMixin, Base):
     __tablename__ = "jobs"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        String, 
+        primary_key=True,
+        default=uuid.uuid4
+    )
 
-    type: Mapped[JobType] = mapped_column(Enum(JobType), nullable=False)
+    type: Mapped[JobType] = mapped_column(
+        Enum(JobType), 
+        nullable=False
+    )
+
+    user_id = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    request_id: Mapped[str | None] = mapped_column(
+        String, 
+        nullable=True, 
+        index=True
+    )
 
     status: Mapped[JobStatus] = mapped_column(
         Enum(JobStatus),
         default=JobStatus.pending,
-        nullable=False
+        nullable=False,
+        index=True
     )
 
-    payload: Mapped[dict] = mapped_column(JSON, nullable=True)
-
-    processing_started_at: Mapped[datetime | None]
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=True)
 
     attempts: Mapped[int] = mapped_column(default=0)
 
     max_attempts: Mapped[int] = mapped_column(default=3)
 
-    next_run_at: Mapped[datetime | None]
-    
-    last_error: Mapped[str | None]
+    processing_started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    next_run_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    last_error: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    user = relationship("User", back_populates="jobs")

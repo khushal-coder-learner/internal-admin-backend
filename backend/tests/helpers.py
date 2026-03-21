@@ -16,6 +16,31 @@ def create_test_user(db, role="admin"):
     db.refresh(user)
     return user
 
+def create_test_job(
+    db,
+    *,
+    user=None,
+    job_type=JobType.export,
+    commit=True,
+    **job_kwargs,
+):
+    if user is None:
+        user = create_test_user(db)
+
+    job = Job(
+        type=job_type,
+        user_id=user.id,
+        **job_kwargs,
+    )
+
+    db.add(job)
+
+    if commit:
+        db.commit()
+        db.refresh(job)
+
+    return job
+
 def login_user(
     client,
     *,
@@ -67,14 +92,11 @@ async def create_completed_export_job(db, redis, export_type="records"):
     Creates and executes an export job, returning the completed job.
     """
 
-    job = Job(
-        type=JobType.export,
-        payload={"export_type": export_type}
+    job = create_test_job(
+        db,
+        job_type=JobType.export,
+        payload={"export_type": export_type},
     )
-
-    db.add(job)
-    db.commit()
-    db.refresh(job)
 
     await process_job(db=db, redis=redis, job_id=job.id)
 

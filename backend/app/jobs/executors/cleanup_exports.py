@@ -1,15 +1,20 @@
 import os
 from datetime import datetime, timedelta
+
 from sqlalchemy import select
 
+from app.core.logging import get_logger
 from app.models.job import Job, JobType, JobStatus
 
 
 RETENTION_SECONDS = 600
+logger = get_logger(__name__)
 
 
 async def execute_cleanup_exports(db, redis, job):
     cutoff = datetime.now() - timedelta(seconds=RETENTION_SECONDS)
+    cleaned_count = 0
+    trigger_job_id = getattr(job, "id", None) if job is not None else None
 
     jobs = db.execute(
         select(Job)
@@ -26,14 +31,31 @@ async def execute_cleanup_exports(db, redis, job):
         if file_path:
             try:
                 os.remove(file_path)
-                print("File removed: ", file_path)
+                logger.info(
+                    "Removed exported file",
+                    extra={"job_id": export_job.id, "file_path": file_path},
+                )
             except FileNotFoundError:
-                print("File not found!")
+                logger.warning(
+                    "Export file already missing during cleanup",
+                    extra={"job_id": export_job.id, "file_path": file_path},
+                )
         else:
-            print(f"Skipping export job {export_job.id}: missing file_path")
+            logger.warning(
+                "Skipping export cleanup because file path is missing",
+                extra={"job_id": export_job.id},
+            )
 
         db.delete(export_job)
+        cleaned_count += 1
 
     db.commit()
+    logger.info(
+        "Completed export cleanup pass",
+        extra={
+            "job_id": trigger_job_id,
+            "cleaned_jobs": cleaned_count,
+        },
+    )
 
     return "Cleaned up exports"

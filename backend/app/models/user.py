@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy import String, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.base import Base
@@ -37,3 +37,5 @@ class User(TimestampMixin, Base):
         Boolean,
         default=True
     )
+
+    jobs = relationship("Job", back_populates="user")
