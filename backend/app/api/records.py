@@ -3,7 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.core.dependencies import get_current_user, require_permission
-from app.schemas.record import RecordCreate, RecordResponse, RecordUpdate, RecordStatusUpdate, RecordAssign
+from app.schemas.record import (
+    RecordCreate,
+    RecordResponse,
+    RecordUpdate,
+    RecordStatusUpdate,
+    RecordAssign,
+    MultiRecordResponse,
+)
 from app.services.record_service import create_record, list_records, update_record, change_record_status, assign_record, soft_delete_record
 from app.models.user import User
 from app.core.permissions import Permission
@@ -29,7 +36,7 @@ def create_record_endpoint(
         current_user=current_user,
     )
 
-@router.get("", response_model=List[RecordResponse])
+@router.get("", response_model=MultiRecordResponse)
 def list_records_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -38,6 +45,8 @@ def list_records_endpoint(
     status: str | None = None,
     assigned_to: UUID | None = None,
     search: str | None = None,
+    sort_by: str = Query("created_at"),
+    sort_order: str = Query("desc"),
 ):
     return list_records(
         db=db,
@@ -47,6 +56,8 @@ def list_records_endpoint(
         status=status,
         assigned_to=assigned_to,
         search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
 @router.patch("/{record_id}", response_model=RecordResponse)

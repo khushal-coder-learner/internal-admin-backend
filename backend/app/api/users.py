@@ -1,17 +1,17 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.core.dependencies import get_db, get_current_user, require_permission
 from app.models.user import User
 from app.core.permissions import Permission
-from app.schemas.user import UserResponse, UserCreate, UserUpdate
+from app.schemas.user import UserResponse, MultiUserResponse, UserCreate, UserUpdate, UserStatusUpdate
 from app.services.user_service import (
     get_current_user_profile,
     list_users,
     create_user,
     update_user, 
-    deactivate_user
+    update_user_status
 )
 
 
@@ -25,13 +25,20 @@ def read_me(
 
 @router.get(
     "",
-    response_model=list[UserResponse],
+    response_model=MultiUserResponse,
     dependencies=[Depends(require_permission(Permission.USER_VIEW))],
 )
 def read_users(
     db: Session = Depends(get_db),
+    search: str = Query(),
+    role: str | None = Query(default=None),
+    is_active: bool | None = Query(default=None),
+    limit: int =  Query(le=100),
+    offset: int = Query(),
+    sort_by: str = Query(),
+    sort_order: str = Query()
 ):
-    return list_users(db)
+    return list_users(db, search=search, role=role, is_active=is_active, limit=limit, offset=offset, sort_by=sort_by, sort_order=sort_order)
 
 @router.post(
     "",
@@ -58,27 +65,22 @@ def update_user_endpoint(
     user_id: UUID,
     payload: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     return update_user(
         db=db,
         user_id=user_id,
         data=payload,
-        current_user=current_user,
     )
 
-@router.delete(
-    "/{user_id}",
-    status_code=204,
-    dependencies=[Depends(require_permission(Permission.USER_DEACTIVATE))],
-)
-def delete_user_endpoint(
+@router.patch(
+        "/{user_id}/status",
+        response_model=UserResponse,
+        dependencies=[Depends(require_permission(Permission.USER_STATUS_CHANGE))],
+        )
+def update_user_status_endpoint(
     user_id: UUID,
+    payload: UserStatusUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    deactivate_user(
-        db=db,
-        user_id=user_id,
-        current_user=current_user,
-    )
+    return update_user_status(db, user_id, payload.is_active, current_user)

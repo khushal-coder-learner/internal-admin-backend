@@ -5,7 +5,7 @@ class Permission(str, Enum):
     USER_VIEW = "user:view"
     USER_CREATE = "user:create"
     USER_UPDATE = "user:update"
-    USER_DEACTIVATE = "user:deactivate"
+    USER_STATUS_CHANGE = "user:status"
 
     # Records
     RECORD_CREATE = "record:create"
@@ -28,7 +28,7 @@ ROLE_PERMISSIONS = {
         Permission.USER_VIEW,
         Permission.USER_CREATE,
         Permission.USER_UPDATE,
-        Permission.USER_DEACTIVATE,
+        Permission.USER_STATUS_CHANGE,
         Permission.RECORD_CREATE,
         Permission.RECORD_VIEW,
         Permission.RECORD_UPDATE,

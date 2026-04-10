@@ -37,3 +37,6 @@ htmlcov/
 #Exports
 backend/app/storage/exports
 .csv
+
+#Frontend dependencies
+node_modules

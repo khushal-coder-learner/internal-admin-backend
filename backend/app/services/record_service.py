@@ -1,10 +1,11 @@
 from fastapi import HTTPException, status
 from uuid import UUID
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.models.record import Record
 from app.models.user import User
+from app.schemas.user import UserRole
 
 from app.services.activity_service import log_activity
 
@@ -47,32 +48,42 @@ def list_records(
     status: str | None = None,
     assigned_to: UUID | None = None,
     search: str | None = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
 ):
-    stmt = select(Record).where(Record.is_deleted == False)
+    filters = [Record.is_deleted == False]
 
     # 🔐 STAFF VISIBILITY RESTRICTION
-    if current_user.role == "staff":
-        stmt = stmt.where(Record.assigned_to == current_user.id)
+    if current_user.role == UserRole.STAFF:
+        filters.append(Record.assigned_to == current_user.id)
 
     # ADMIN-ONLY FILTERS
     else:
         if assigned_to:
-            stmt = stmt.where(Record.assigned_to == assigned_to)
+            filters.append(Record.assigned_to == assigned_to)
 
     # Filter by status
     if status:
-        stmt = stmt.where(Record.status == status)
+        filters.append(Record.status == status)
 
     # Simple search
     if search:
-        stmt = stmt.where(Record.title.ilike(f"%{search}%"))
+        filters.append(Record.title.ilike(f"%{search}%"))
 
-    stmt = stmt.order_by(Record.created_at.desc())
+    total = db.scalar(select(func.count()).select_from(Record).where(*filters)) or 0
+
+    # Sorting (whitelist is safer)
+    ALLOWED_SORTS = {"created_at", "updated_at", "title", "status"}
+    sort_col = getattr(Record, sort_by) if sort_by in ALLOWED_SORTS else Record.created_at
+    order_expr = sort_col.desc() if sort_order == "desc" else sort_col.asc()
+
+    stmt = select(Record).where(*filters).order_by(order_expr)
 
     offset = (page - 1) * limit
     stmt = stmt.offset(offset).limit(limit)
 
-    return db.scalars(stmt).all()
+    items = db.scalars(stmt).all()
+    return {"items": items, "total": total}
 
 
 def update_record(

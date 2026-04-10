@@ -11,8 +11,7 @@ class RecordCreate(BaseModel):
 class RecordUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
-    status: str | None = None
-
+    
 
 class RecordResponse(BaseModel):
     id: UUID
@@ -25,6 +24,10 @@ class RecordResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class MultiRecordResponse(BaseModel):
+    items: list[RecordResponse]
+    total: int
 
 class RecordStatusUpdate(BaseModel):
     status: str

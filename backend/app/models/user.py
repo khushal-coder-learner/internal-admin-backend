@@ -1,10 +1,11 @@
 import uuid
-from sqlalchemy import String, Boolean
+from sqlalchemy import String, Boolean, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.base import Base
 from app.models.mixins import TimestampMixin
+from app.schemas.user import UserRole
 
 
 class User(TimestampMixin, Base):
@@ -29,7 +30,7 @@ class User(TimestampMixin, Base):
     )
 
     role: Mapped[str] = mapped_column(
-        String,
+        Enum(UserRole),
         nullable=False  # 'admin' or 'staff'
     )
 
