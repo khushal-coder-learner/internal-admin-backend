@@ -5,11 +5,12 @@ from typing import Optional
 
 from redis.asyncio import Redis
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.core.logging import get_logger
 from app.jobs.registry import JOB_REGISTRY
 from app.models.user import User
+from app.schemas.user import UserRole
 from app.models.job import Job, JobStatus
 from app.jobs.types import JobType
 from app.utils.job_utils import schedule_retry_or_fail
@@ -25,22 +26,48 @@ async def get_user_jobs(
     status: Optional[JobStatus],
     job_type: Optional[JobType],
     limit: int,
-    offset: int
+    offset: int,
+    sort_order: str = "desc",
 ):
-    query = select(Job).where(Job.user_id == current_user.id)
+    # 🧠 Build filters explicitly
+    if current_user.role == UserRole.ADMIN:
+        filters = []
+    else:
+        filters = [Job.user_id == current_user.id]
 
     if status:
-        query = query.where(Job.status == status)
+        filters.append(Job.status == status)
 
     if job_type:
-        query = query.where(Job.type == job_type)
+        filters.append(Job.type == job_type)
 
-    query = query.order_by(Job.created_at.desc())
-    query = query.limit(limit).offset(offset)
+    # 📊 Total count (filtered)
+    total = db.scalar(
+        select(func.count()).select_from(Job).where(*filters)
+    ) or 0
 
-    jobs = db.execute(query).scalars().all()
+    # 🔽 Sorting
+    order_expr = (
+        Job.created_at.desc()
+        if sort_order == "desc"
+        else Job.created_at.asc()
+    )
 
-    return jobs
+    # 📄 Main query
+    stmt = (
+        select(Job)
+        .where(*filters)
+        .order_by(order_expr)
+        .limit(limit)
+        .offset(offset)
+    )
+
+    items = db.execute(stmt).scalars().all()
+
+    return {
+        "items": items,
+        "total": total,
+    }
 
 async def process_job(*, db: Session, job_id: str | uuid.UUID, redis: Redis):
     job_id = str(job_id)

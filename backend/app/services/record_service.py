@@ -176,7 +176,7 @@ def assign_record(
     db: Session,
     *,
     record_id: UUID,
-    assignee_id: UUID,
+    assignee_id: UUID | None,
     current_user: User,
 ) -> Record:
     record = db.get(Record, record_id)
@@ -196,7 +196,7 @@ def assign_record(
         action="assign",
         performed_by=current_user.id,
         details={
-            "assigned_to": str(assignee_id),
+            "assigned_to": str(assignee_id) if assignee_id is not None else None,
         },
     )
 

@@ -13,7 +13,7 @@ from app.services.job_service import process_job, recover_stuck_jobs
 QUEUE_NAME = "queue:jobs"
 QUEUE_PROCESSING = "queue:processing"
 
-CLEANUP_INTERVAL = 60
+CLEANUP_INTERVAL = 60*60*24
 QUEUE_BLOCK_TIMEOUT = 5
 
 configure_logging(service="worker")

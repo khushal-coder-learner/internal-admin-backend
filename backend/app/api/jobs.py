@@ -20,6 +20,8 @@ import uuid
 import time
 import hmac
 import hashlib
+from pathlib import Path
+
 
 logger = get_logger(__name__)
 
@@ -34,35 +36,48 @@ async def get_my_jobs(
     status: Optional[JobStatus] = Query(None),
     job_type: Optional[JobType] = Query(None),
     limit: int = Query(10, le=100),
-    offset: int = Query(0)
+    offset: int = Query(0),
+    sort_order: str = Query("desc"),
 ):
-    jobs = await get_user_jobs(
+    result = await get_user_jobs(
         db=db,
         current_user=current_user,
         status=status,
         job_type=job_type,
         limit=limit,
-        offset=offset
+        offset=offset,
+        sort_order=sort_order,
     )
 
     logger.info(
         "Fetched user jobs",
         extra={
             "user_id": current_user.id,
-            "count": len(jobs)
+            "count": result["total"]
         }
     )
 
-    return [
-        {
+    items = []
+
+    for job in result["items"]:
+        download_url = None
+
+        if job.status == JobStatus.completed and job.payload.get("file_path"):
+            download_url = generate_signed_download_url(job.payload["file_path"])
+
+        items.append({
             "id": job.id,
             "type": job.type,
             "status": job.status,
-            "progress": job.payload.get("progress", 0) if job.payload else 0,
+            "payload": job.payload,
             "created_at": job.created_at,
+            "download_url": download_url,
+        })
+
+    return {
+        "items": items,
+        "total": result["total"],
         }
-        for job in jobs
-    ]
 
 @router.get("/jobs/{job_id}", dependencies=[Depends(require_permission(Permission.JOB_VIEW))])
 def get_job(job_id: str, db: Session = Depends(get_db)):
@@ -146,8 +161,14 @@ def download_export(path: str, expires: int, sig: str):
 
     if not hmac.compare_digest(sig, expected_sig):
         raise HTTPException(403, "Invalid signature")
+    
+    BASE_DIR = Path("storage/exports").resolve()
+    requested_path = Path(path).resolve()
 
-    if not os.path.exists(path):
+    if not str(requested_path).startswith(str(BASE_DIR)):
+        raise HTTPException(403, "Invalid path")
+
+    if not os.path.exists(requested_path):
         raise HTTPException(404, "File not found")
 
     return FileResponse(

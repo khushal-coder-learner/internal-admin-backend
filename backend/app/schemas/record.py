@@ -33,4 +33,5 @@ class RecordStatusUpdate(BaseModel):
     status: str
 
 class RecordAssign(BaseModel):
-    user_id: UUID
+    # Allow null to support "unassign" from the UI (and allow omission if desired).
+    user_id: UUID | None = None

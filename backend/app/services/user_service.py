@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.models.user import User
 from app.core.security import hash_password
-from app.schemas.user import UserUpdate
+from app.schemas.user import UserUpdate, UserRole
 
 def get_current_user_profile(*, current_user: User) -> User:
     return current_user
@@ -120,6 +120,12 @@ def update_user_status(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You cannot deactivate yourself",
+        )
+    
+    if user.role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot deactivate an Admin user",
         )
 
     user.is_active = is_active
