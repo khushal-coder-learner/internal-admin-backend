@@ -1,11 +1,23 @@
-# 🛠️ Internal Admin Backend (FastAPI)
+# 🛠️ Internal Admin System (FastAPI + React)
 
 Hi 👋
-I built this project to demonstrate how I design **real-world backend systems** using FastAPI — the kind of systems businesses actually hire freelancers to build.
+I built this project to demonstrate how I design **real-world full-stack systems** using FastAPI and React — the kind of systems businesses actually hire freelancers to build.
 
 This is a **production-style backend** focused on clean architecture, business workflows, auditability, and long-term maintainability.
 
 ---
+## 🧰 Tech Stack
+*Backend
+- FastAPI
+- SQLAlchemy 2.0
+- PostgreSQL
+- Alembic
+- Pytest
+*Frontend
+- React (with TypeScript)
+- React Query (server state management)
+- Axios (API layer + interceptors)
+- Ant Design (UI components)
 
 ## ✨ What this backend does
 
@@ -125,6 +137,74 @@ Each log records:
 
 ---
 
+## 🖥️ Admin Frontend (React)
+
+To complement the backend, I built a React-based admin interface that interacts with the API and demonstrates how the system behaves in real-world usage.
+
+This is not just a UI layer — it focuses on:
+* **Correct API integration**
+* **Reliable state management**
+* **Handling real-world edge cases** (auth, errors, async flows)
+
+The frontend reflects the same principles as the backend: **clarity, correctness, and maintainability over unnecessary complexity.**
+
+### ⚙️ Frontend Highlights
+
+* **🔐 Authentication Flow**
+  * Login with JWT access + refresh tokens
+  * Session persistence using `sessionStorage`
+  * Automatic token refresh with request retry
+  * Route protection with auth hydration
+* **📊 Data Management**
+  * Server-side pagination, filtering, and sorting
+  * Consistent `{ items, total }` API handling
+  * Debounced search inputs
+  * Query-based data fetching with caching via React Query
+* **🔄 Mutations & Actions**
+  * Explicit actions for: record assignment, status updates, and job triggers
+  * Safe mutation handling without inconsistent optimistic updates
+  * Automatic UI synchronization using query invalidation
+* **📁 Jobs & Async Workflows**
+  * Background jobs displayed with real-time progress polling
+  * Export system with secure file download handling
+* **🧾 Activity Logs**
+  * Filterable audit logs reflecting the backend audit system
+  * Client-side validation for query inputs (e.g., UUID formats)
+* **⚠️ Error Handling**
+  * Backend error messages (detail) propagated directly to the UI
+  * Graceful fallbacks and consistent user feedback for failed actions
+
+### 🧱 Frontend Structure
+
+The frontend follows a **feature-based structure** to keep code modular:
+
+```
+src/
+├── features/       # Feature modules (auth, users, records, jobs, etc.)
+├── lib/            # Shared logic (Axios instance, token helpers)
+└── shared/         # Common UI components and global hooks
+```
+
+**Design Approach:**
+* API logic is strictly separated from UI components
+* Custom hooks encapsulate all data fetching and mutation logic
+* Components remain "dumb" and focused on rendering and interaction
+* Minimal local state; server state is handled entirely by React Query
+
+---
+
+## 🔁 Backend ↔ Frontend Integration
+
+This project demonstrates full-stack coordination, not isolated layers:
+
+* **Predictable API Consumption**: The backend provides a consistent structure, and the frontend consumes it predictably using standardized query keys.
+* **Unified Auth Flow**: The JWT flow, including refresh logic and rotation, is synchronized across both layers.
+* **Shared Validation Logic**: Error handling and validation rules are aligned, ensuring backend detail is surfaced accurately to the user.
+
+I also made specific backend adjustments to ensure clean frontend integration, such as refining role enums, supporting explicit unassignment, and optimizing export URL handling.
+
+---
+
 ## 🗄️ Database & Migrations
 
 * PostgreSQL (Dockerized)
@@ -217,20 +297,12 @@ The goal was **reuse and extension**, not one-off code.
 
 ---
 
-## 🏁 Project Status
-
-* Core backend complete
-* Tests passing
-* Architecture stable
-* Ready for extension or client adaptation
-
-Possible next steps:
-
-* stricter permission rules
-* soft delete endpoint
-* pagination metadata
-* background tasks
-* user management endpoints
+🏁 Project Status
+Backend complete and tested
+Frontend admin panel fully integrated
+Auth system (access + refresh) implemented end-to-end
+Async job workflows and exports working
+Core architecture stable across both layers
 
 ---
 
