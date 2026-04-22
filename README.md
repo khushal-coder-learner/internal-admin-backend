@@ -7,13 +7,13 @@ This is a **production-style backend** focused on clean architecture, business w
 
 ---
 ## 🧰 Tech Stack
-*Backend
+* ### Backend
 - FastAPI
 - SQLAlchemy 2.0
 - PostgreSQL
 - Alembic
 - Pytest
-*Frontend
+* ### Frontend
 - React (with TypeScript)
 - React Query (server state management)
 - Axios (API layer + interceptors)
