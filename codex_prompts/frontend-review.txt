@@ -1,0 +1,460 @@
+# frontend-review-workflow.txt
+
+Frontend Review Workflow (Admin UI)
+
+Goal:
+Ensure the frontend works correctly, integrates properly with backend APIs, and handles state, async behavior, and data consistency reliably. Focus on correctness and implementation, not visual design.
+
+---
+
+1. API Integration
+
+For every API call, verify:
+
+* Endpoint path is correct
+* HTTP method is correct
+* Query parameters are correct (limit, offset, filters, sorting)
+* Request matches backend contract
+
+Verify response handling uses the standard structure:
+{
+items: [],
+total: number
+}
+
+Check:
+
+* Tables use data.items
+* Pagination uses data.total
+
+Common issues to detect:
+
+* Using data instead of data.items
+* Missing query params
+* Hardcoded request values
+
+---
+
+2. Pagination Logic
+
+Verify:
+offset = (page - 1) * pageSize
+
+Check:
+
+* Page resets on filter/search change
+* total is passed correctly
+* pageSize updates correctly
+
+---
+
+3. Filtering and Search
+
+Verify:
+
+* Debounce is implemented for search
+* Filters update API parameters
+* Queries are backend-friendly (prefix-based where applicable)
+
+Detect:
+
+* UI updates without API calls
+* Stale data due to missing dependencies
+
+---
+
+4. Data Fetching (React Query)
+
+Verify:
+
+* queryKey includes all dependencies
+
+Example:
+["users", page, pageSize, search, sortBy, sortOrder]
+
+Ensure:
+
+* Refetch occurs on dependency change
+* Cache stays consistent
+
+Detect:
+
+* Missing dependencies in queryKey
+* Stale UI after updates
+* Manual state overrides instead of query invalidation
+
+---
+
+5. Mutations
+
+Verify:
+
+* Correct payload is sent
+* Success triggers data refresh
+
+Example:
+queryClient.invalidateQueries(...)
+
+Detect:
+
+* UI not updating after mutation
+* Over-reliance on local state
+* Missing error handling
+
+---
+
+6. Authentication
+
+Verify:
+
+* Token is stored correctly
+* Token is sent with requests
+* Logout clears token
+
+Check:
+
+* Unauthorized responses are handled
+* Protected routes enforce access control
+
+---
+
+7. State Management
+
+Ensure:
+
+* Server state is handled by React Query
+* Local state is minimal and necessary
+
+Detect:
+
+* Duplicate state (server + local mismatch)
+* Unnecessary useState for fetched data
+
+---
+
+8. Async Behavior
+
+Verify:
+
+* Loading states exist
+* Actions are disabled during requests
+* Polling is implemented where required
+
+Example:
+refetchInterval: 3000
+
+Detect:
+
+* Multiple triggers for same action
+* Missing loading indicators
+* Race conditions
+
+---
+
+9. File Download Flow
+
+Verify:
+
+* Download URL comes from backend
+* URL uses backend origin (not frontend dev server)
+* Download is triggered correctly
+
+Detect:
+
+* Incorrect base URL
+* Missing download fields
+* Download attempted before job completion
+
+---
+
+10. Component Structure
+
+Ensure:
+
+* Feature-based organization
+
+Example:
+features/
+users/
+records/
+jobs/
+
+Detect:
+
+* Mixed responsibilities
+* Oversized components
+* No separation of hooks, api, and UI
+
+---
+
+11. Edge Cases
+
+Test:
+
+* Empty datasets
+* Large datasets
+* Failed jobs
+* Slow network
+* Invalid filters
+* Expired download links
+
+---
+
+12. Consistency
+
+Verify:
+
+* Pagination works the same across pages
+* API response shape is consistent
+* Filters behave consistently
+* Tables follow same structure
+
+---
+
+13. Error Handling
+
+Ensure:
+
+* Errors are handled in UI
+* Fallback UI is shown
+* Backend error messages (detail) are displayed when available
+Example:
+if (error) return <p>Error loading...</p>
+
+Detect:
+
+* Silent failures
+* Console-only error handling
+
+---
+
+14. Hardcoded Values
+
+Ensure:
+
+* No hardcoded IDs
+* No hardcoded URLs
+* No hardcoded filters
+
+---
+
+15. Routing
+
+Verify:
+
+* Protected routes work
+* Public routes are restricted correctly
+* Navigation is consistent
+
+---
+
+16. Auth Persistence and Hydration
+
+Verify:
+
+- Auth state is restored on app load
+- sessionStorage is used for token persistence
+- /users/me is called during hydration
+- App waits using isAuthLoading before rendering protected routes
+
+Detect:
+
+- Redirects happening before hydration completes
+- Missing loading guard in route protection
+- Token exists but user is null (desync)
+
+---
+
+17. Axios Interceptor Behavior
+
+Verify:
+
+- Access token is attached to all requests
+- 401 triggers refresh flow once
+- Original request is retried after refresh
+- Refresh uses a separate axios instance (no interceptor loop)
+
+Detect:
+
+- Infinite refresh loops
+- Multiple refresh calls for concurrent requests
+- Missing retry flag (_retry)
+- Token not updated after refresh
+- Forced redirects instead of propagating error
+
+---
+
+18. Error Propagation
+
+Verify:
+
+- Backend error messages (detail) are surfaced to UI
+- Axios errors are not swallowed
+- UI shows meaningful messages instead of generic failures
+
+Detect:
+
+- Generic "Something went wrong" everywhere
+- Backend detail ignored
+- Interceptor blocking error propagation
+
+---
+
+19. Local State Synchronization After Mutation
+
+Verify:
+
+- UI state reflects mutation result immediately
+- setState uses functional updates where needed
+
+Detect:
+
+- UI showing stale values after mutation
+- Incorrect field updates (e.g., userId vs assigned_to)
+- Over-reliance on refetch for UI sync
+
+---
+
+20. Client-side Input Validation
+
+Verify:
+
+- Inputs are validated before API calls when applicable
+- Invalid inputs do not trigger backend requests
+
+Detect:
+
+- Invalid UUIDs sent to backend
+- Avoidable 422 errors
+- Missing debounce for user input
+
+---
+
+21. Environment Configuration
+
+Verify:
+
+- API base URL uses environment variable
+- Default fallback is present
+
+Example:
+VITE_API_BASE_URL ?? "http://localhost:8000"
+
+Detect:
+
+- Hardcoded API URLs
+- Inconsistent base URLs across files
+
+---
+
+22. Request Safety
+
+Verify:
+
+- Actions are disabled while mutation is pending
+- Duplicate requests are prevented
+
+Detect:
+
+- Multiple submissions of same action
+- No loading guard on critical actions
+
+---
+
+23. Review Constraints
+
+The reviewer follows these rules:
+
+* Focus on functionality, correctness, and backend compatibility
+* Respect existing architecture unless there is a clear functional issue
+* Provide reasoning for every identified issue
+* Classify findings into:
+  critical issues
+  improvements
+  optional suggestions
+* Suggest changes only where necessary and justified
+* Keep feedback specific and actionable
+* Avoid making assumptions beyond available code and behavior
+
+Change policy:
+Changes are proposed but not applied. Implementation happens only after explicit approval.
+
+---
+
+24. Output Format
+
+The review must follow this structure:
+
+Summary:
+
+* Overall status: PASS / MINOR ISSUES / MAJOR ISSUES
+* Short explanation (max 3 lines)
+
+Critical Issues:
+For each:
+[Title]
+Problem:
+Why it matters:
+Suggested fix:
+
+Improvements:
+[Area]
+Observation:
+Recommendation:
+
+Optional Suggestions:
+Low priority refinements
+
+Quality Assessment:
+API Integration: X/10
+State Management: X/10
+Data Fetching: X/10
+Pagination and Filtering: X/10
+Mutations: X/10
+Error Handling: X/10
+Authentication: X/10
+Consistency: X/10
+
+Overall Score: X/10
+
+Required Changes:
+Checklist format:
+
+* [ ] Change 1
+* [ ] Change 2
+* [ ] Change 3
+
+---
+
+25. Review Modes
+
+mode = quick | standard | strict
+
+quick:
+
+* Only critical issues
+
+standard:
+
+* Critical issues + improvements
+
+strict:
+
+* Full review + scoring + edge cases
+
+---
+
+26. Final Validation
+
+Before completion, confirm:
+
+* All tables use items and total correctly
+* Pagination is correct everywhere
+* Filters trigger API calls
+* Mutations refresh data
+* Jobs polling works
+* Downloads work
+* Authentication flow is complete
+* No duplicate state bugs
+
+---

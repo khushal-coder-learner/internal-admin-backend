@@ -1,0 +1,74 @@
+You are reviewing a React + TypeScript frontend that uses:
+- Axios for API calls
+- React Query for data fetching and mutations
+- Ant Design for UI
+
+Your task is to ADD error handling with MINIMAL changes.
+
+Focus strictly on functionality and correctness.
+Do not refactor or restructure existing code.
+
+---
+
+Requirements:
+
+1. Query Error Handling
+- Ensure all pages using useQuery handle errors explicitly.
+- Add simple fallback UI:
+  if (error) return <p>Error loading data</p>;
+- Do not introduce new components or abstractions.
+
+2. Mutation Error Handling
+- Add onError handlers to all mutations.
+- Show user feedback using existing UI system (e.g. message.error from antd).
+- Do not change mutation logic or flow.
+
+3. Async Safety
+- Ensure no action can be triggered multiple times while pending.
+- Disable buttons or actions during loading where needed.
+- Only apply this where duplicate requests are possible.
+
+4. Axios Error Consistency
+- Ensure API errors propagate correctly (no silent failures).
+- Do not modify interceptor logic unless absolutely necessary.
+
+5. Scope Control
+- Only modify:
+  - pages using queries
+  - mutation hooks or inline mutation usage
+- Do not modify:
+  - layout
+  - routing
+  - auth system
+  - component structure
+
+6. Consistency
+- Follow the same pattern used in each page for error handling.
+- Keep implementation consistent across users, records, jobs, and activity logs.
+
+---
+
+Constraints:
+
+- Keep changes minimal and localized
+- Do not introduce new libraries
+- Do not rewrite existing components
+- Do not change API contracts
+- Avoid adding new abstractions or hooks
+
+---
+
+Output Format:
+
+Summary:
+- Overall status after changes
+
+Changes Made:
+- List of files modified
+- What was added in each file
+
+Code Changes:
+- Show only the modified sections (diff-style preferred)
+
+Notes:
+- Mention any edge cases or limitations

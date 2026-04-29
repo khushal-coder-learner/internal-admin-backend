@@ -3,7 +3,10 @@ from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
 
 from app.core.config import settings
+import os
+print("DATABASE_URL =", os.getenv("DATABASE_URL"))
 
+print("Settings databse_url", settings.database_url)
 engine = create_engine(
     settings.database_url,
     echo=False,

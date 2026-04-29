@@ -23,4 +23,4 @@ def generate_signed_download_url(file_path: str, expires_in: int = 600):
         "sig": signature
     })
 
-    return f"http://localhost:8000/exports/download?{params}"
+    return f"{settings.exports_download_url}{params}"

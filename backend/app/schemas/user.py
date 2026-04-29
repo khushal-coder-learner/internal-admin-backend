@@ -3,6 +3,9 @@ from uuid import UUID
 from typing import Optional
 from enum import Enum
 
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    STAFF = "staff"
 
 class UserResponse(BaseModel):
     id: UUID
@@ -29,7 +32,3 @@ class UserUpdate(BaseModel):
 
 class UserStatusUpdate(BaseModel):
     is_active: bool
-
-class UserRole(str, Enum):
-    ADMIN = "admin"
-    STAFF = "staff"

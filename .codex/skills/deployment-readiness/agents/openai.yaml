@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploy Readiness"
+  short_description: "Assess cloud deployment readiness for apps"
+  default_prompt: "Use $deployment-readiness to assess this app's cloud deployment readiness."

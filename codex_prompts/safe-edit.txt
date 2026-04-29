@@ -1,0 +1,10 @@
+Use the SAFE-EDIT workflow for this goal: "Add a regression test for the CLI flag parsing bug #123"
+
+Rules:
+- Ask up to 3 clarifying questions if needed; otherwise list assumptions.
+- Propose a minimal patch plan (files + what changes).
+- Stop for approval before editing.
+- Edit only src/ and tests/ (ask before touching anything else).
+- Verify: (a) quickest safe tests, (b) lint/format/typecheck if present, (c) CI-equivalent if safe.
+- Re-run quick verification once; if mismatch, report flakiness and stop.
+- Report: summary, commands+results, git diff, follow-ups.
