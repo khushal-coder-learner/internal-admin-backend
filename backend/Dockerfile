@@ -25,6 +25,9 @@ RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 # ---------- Copy application code ----------
 COPY --chown=appuser:appgroup . .
 
+#----------- Grant directory Permissions -----------
+RUN chown -R appuser:appgroup /app
+
 # Optional: create writable directory for exports (if your worker writes files)
 RUN mkdir -p /data && chown appuser:appgroup /data
 
