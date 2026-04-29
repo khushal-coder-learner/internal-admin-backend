@@ -31,6 +31,7 @@ router = APIRouter()
 
 @router.get("/jobs/me")
 async def get_my_jobs(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     status: Optional[JobStatus] = Query(None),
@@ -63,7 +64,7 @@ async def get_my_jobs(
         download_url = None
 
         if job.status == JobStatus.completed and job.payload.get("file_path"):
-            download_url = generate_signed_download_url(job.payload["file_path"])
+            download_url = generate_signed_download_url(request, job.payload["file_path"])
 
         items.append({
             "id": job.id,
@@ -80,7 +81,7 @@ async def get_my_jobs(
         }
 
 @router.get("/jobs/{job_id}", dependencies=[Depends(require_permission(Permission.JOB_VIEW))])
-def get_job(job_id: str, db: Session = Depends(get_db)):
+def get_job(request: Request, job_id: str, db: Session = Depends(get_db)):
     job = db.get(Job, job_id)
     if not job:
         raise HTTPException(404)
@@ -88,7 +89,7 @@ def get_job(job_id: str, db: Session = Depends(get_db)):
     download_url = None
 
     if job.status == JobStatus.completed and job.payload.get("file_path"):
-        download_url = generate_signed_download_url(job.payload["file_path"])
+        download_url = generate_signed_download_url(request, job.payload["file_path"])
 
     return {
         "status": job.status,
@@ -143,7 +144,7 @@ async def create_export(
 
     return {"job_id": job.id}
 
-@router.get("/exports/download")
+@router.get("/exports/download", name="download_export")
 def download_export(path: str, expires: int, sig: str):
 
     now = int(time.time())
@@ -162,7 +163,7 @@ def download_export(path: str, expires: int, sig: str):
     if not hmac.compare_digest(sig, expected_sig):
         raise HTTPException(403, "Invalid signature")
     
-    BASE_DIR = Path("storage/exports").resolve()
+    BASE_DIR = Path("/data/exports").resolve()
     requested_path = Path(path).resolve()
 
     if not str(requested_path).startswith(str(BASE_DIR)):
@@ -172,8 +173,8 @@ def download_export(path: str, expires: int, sig: str):
         raise HTTPException(404, "File not found")
 
     return FileResponse(
-        path,
-        filename=os.path.basename(path),
+        requested_path,
+        filename=os.path.basename(requested_path),
         media_type="text/csv"
     )
 
