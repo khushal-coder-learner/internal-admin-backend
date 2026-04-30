@@ -1,12 +1,14 @@
 import hmac
 import hashlib
 import time
+from fastapi import Request
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from app.core.config import settings
 
 def generate_signed_download_url(
     file_path: str,
-    expires_in: int = 600
+    expires_in: int = 600,
+    request: Request | None = None,
 ):
     expiry = int(time.time()) + expires_in
 
@@ -24,7 +26,13 @@ def generate_signed_download_url(
         "sig": signature
     }
 
-    base_url = urlsplit(settings.exports_download_url)
+    if request is not None:
+        base_url = urlsplit(str(request.url_for("download_export")))
+    elif settings.exports_download_url:
+        base_url = urlsplit(settings.exports_download_url)
+    else:
+        base_url = urlsplit("/exports/download")
+
     query = dict(parse_qsl(base_url.query, keep_blank_values=True))
     query.update(params)
 

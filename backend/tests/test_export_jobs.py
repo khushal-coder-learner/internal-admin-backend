@@ -217,7 +217,7 @@ async def test_export_download(client, db, test_redis):
         assert response.status_code == 200, response.text
 
         url = response.json()["download_url"]
-        assert url.startswith(settings.exports_download_url.split("?")[0])
+        assert urlsplit(url).path == str(app.url_path_for("download_export"))
 
         download = client.get(url)
 
@@ -233,7 +233,7 @@ def test_export_download_rejects_expired_signature(client, export_dir):
     expires = int(time.time()) - 1
 
     response = client.get(
-        settings.exports_download_url,
+        str(app.url_path_for("download_export")),
         params=_signed_download_params(export_file, expires),
     )
 

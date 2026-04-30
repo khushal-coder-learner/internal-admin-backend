@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from fastapi import Depends, APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from redis.asyncio import Redis
 from typing import Optional
@@ -28,6 +28,7 @@ router = APIRouter()
 
 @router.get("/jobs/me")
 async def get_my_jobs(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     status: Optional[JobStatus] = Query(None),
@@ -60,7 +61,10 @@ async def get_my_jobs(
         download_url = None
 
         if job.status == JobStatus.completed and job.payload.get("file_path"):
-            download_url = generate_signed_download_url(job.payload["file_path"])
+            download_url = generate_signed_download_url(
+                job.payload["file_path"],
+                request=request,
+            )
 
         items.append({
             "id": job.id,
@@ -77,7 +81,7 @@ async def get_my_jobs(
         }
 
 @router.get("/jobs/{job_id}", dependencies=[Depends(require_permission(Permission.JOB_VIEW))])
-def get_job(job_id: str, db: Session = Depends(get_db)):
+def get_job(job_id: str, request: Request, db: Session = Depends(get_db)):
     job = db.get(Job, job_id)
     if not job:
         raise HTTPException(404)
@@ -85,7 +89,10 @@ def get_job(job_id: str, db: Session = Depends(get_db)):
     download_url = None
 
     if job.status == JobStatus.completed and job.payload.get("file_path"):
-        download_url = generate_signed_download_url(job.payload["file_path"])
+        download_url = generate_signed_download_url(
+            job.payload["file_path"],
+            request=request,
+        )
 
     return {
         "status": job.status,
