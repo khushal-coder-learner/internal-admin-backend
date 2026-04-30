@@ -29,7 +29,7 @@ COPY --chown=appuser:appgroup . .
 RUN chown -R appuser:appgroup /app
 
 # Optional: create writable directory for exports (if your worker writes files)
-RUN mkdir -p /data && chown appuser:appgroup /data
+RUN mkdir -p /data/exports && chown -R appuser:appgroup /data
 
 # ---------- Switch to non-root user ----------
 USER appuser

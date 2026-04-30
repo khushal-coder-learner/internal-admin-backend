@@ -1,10 +1,15 @@
 import os
 import pytest
+import hmac
+import time
+import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 from tests.helpers import create_test_user, create_completed_export_job, create_test_job
 
 from app.jobs.executors.cleanup_exports import RETENTION_SECONDS, execute_cleanup_exports
+from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.main import app
 from app.models.record import Record
@@ -16,6 +21,21 @@ from app.services.job_service import (
     QUEUE_PENDING,
     QUEUE_PROCESSING,
 )
+from app.utils.file_utils import generate_signed_download_url
+
+
+def _signed_download_params(file_path: Path, expires: int) -> dict[str, str | int]:
+    message = f"{file_path}:{expires}".encode()
+    sig = hmac.new(
+        settings.secret_key.encode(),
+        message,
+        hashlib.sha256,
+    ).hexdigest()
+    return {
+        "path": str(file_path),
+        "expires": expires,
+        "sig": sig,
+    }
 
 @pytest.mark.asyncio
 async def test_export_job_success(db, test_redis):
@@ -197,6 +217,7 @@ async def test_export_download(client, db, test_redis):
         assert response.status_code == 200, response.text
 
         url = response.json()["download_url"]
+        assert url.startswith(settings.exports_download_url.split("?")[0])
 
         download = client.get(url)
 
@@ -204,3 +225,55 @@ async def test_export_download(client, db, test_redis):
         assert "text/csv" in download.headers["content-type"]
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_export_download_rejects_expired_signature(client, export_dir):
+    export_file = export_dir / "expired-export.csv"
+    export_file.write_text("id,name\n1,test\n", encoding="utf-8")
+    expires = int(time.time()) - 1
+
+    response = client.get(
+        settings.exports_download_url,
+        params=_signed_download_params(export_file, expires),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Download link expired"
+
+
+def test_export_download_rejects_invalid_signature(client, export_dir):
+    export_file = export_dir / "tampered-export.csv"
+    export_file.write_text("id,name\n1,test\n", encoding="utf-8")
+    url = generate_signed_download_url(str(export_file))
+    parsed = urlsplit(url)
+    params = parse_qs(parsed.query)
+    params["sig"] = ["bad-signature"]
+
+    response = client.get(
+        parsed.path,
+        params={key: values[0] for key, values in params.items()},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Invalid signature"
+
+
+def test_export_download_rejects_path_outside_export_dir(client, tmp_path):
+    outside_file = tmp_path / "outside-export.csv"
+    outside_file.write_text("id,name\n1,test\n", encoding="utf-8")
+    url = generate_signed_download_url(str(outside_file))
+
+    response = client.get(url)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Invalid path"
+
+
+def test_export_download_rejects_missing_file_inside_export_dir(client, export_dir):
+    missing_file = export_dir / "missing-export.csv"
+    url = generate_signed_download_url(str(missing_file))
+
+    response = client.get(url)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "File not found"

@@ -1,13 +1,10 @@
 import hmac
 import hashlib
 import time
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from app.core.config import settings
 
-from fastapi import Request
-
 def generate_signed_download_url(
-    request: Request,
     file_path: str,
     expires_in: int = 600
 ):
@@ -21,12 +18,22 @@ def generate_signed_download_url(
         hashlib.sha256
     ).hexdigest()
 
-    params = urlencode({
+    params = {
         "path": file_path,
         "expires": expiry,
         "sig": signature
-    })
+    }
 
-    base_url = request.url_for("download_export")
+    base_url = urlsplit(settings.exports_download_url)
+    query = dict(parse_qsl(base_url.query, keep_blank_values=True))
+    query.update(params)
 
-    return f"{base_url}?{params}"
+    return urlunsplit(
+        (
+            base_url.scheme,
+            base_url.netloc,
+            base_url.path,
+            urlencode(query),
+            base_url.fragment,
+        )
+    )

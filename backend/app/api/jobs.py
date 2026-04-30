@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
-from fastapi import Request, Depends, APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 from redis.asyncio import Redis
 from typing import Optional
@@ -9,18 +8,16 @@ from app.core.dependencies import get_db, get_redis, get_request_id, get_current
 from app.models.user import User
 from app.models.job import Job, JobStatus
 from app.jobs.types import JobType
-from app.core.security import settings
+from app.core.config import settings
 from app.utils.file_utils import generate_signed_download_url
 from app.core.logging import get_logger
 from app.services.activity_service import log_activity
 from app.services.job_service import get_user_jobs
+from app.services.exports.paths import resolve_export_path
 
-import os
-import uuid
 import time
 import hmac
 import hashlib
-from pathlib import Path
 
 
 logger = get_logger(__name__)
@@ -31,7 +28,6 @@ router = APIRouter()
 
 @router.get("/jobs/me")
 async def get_my_jobs(
-    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     status: Optional[JobStatus] = Query(None),
@@ -64,7 +60,7 @@ async def get_my_jobs(
         download_url = None
 
         if job.status == JobStatus.completed and job.payload.get("file_path"):
-            download_url = generate_signed_download_url(request, job.payload["file_path"])
+            download_url = generate_signed_download_url(job.payload["file_path"])
 
         items.append({
             "id": job.id,
@@ -81,7 +77,7 @@ async def get_my_jobs(
         }
 
 @router.get("/jobs/{job_id}", dependencies=[Depends(require_permission(Permission.JOB_VIEW))])
-def get_job(request: Request, job_id: str, db: Session = Depends(get_db)):
+def get_job(job_id: str, db: Session = Depends(get_db)):
     job = db.get(Job, job_id)
     if not job:
         raise HTTPException(404)
@@ -89,7 +85,7 @@ def get_job(request: Request, job_id: str, db: Session = Depends(get_db)):
     download_url = None
 
     if job.status == JobStatus.completed and job.payload.get("file_path"):
-        download_url = generate_signed_download_url(request, job.payload["file_path"])
+        download_url = generate_signed_download_url(job.payload["file_path"])
 
     return {
         "status": job.status,
@@ -163,18 +159,17 @@ def download_export(path: str, expires: int, sig: str):
     if not hmac.compare_digest(sig, expected_sig):
         raise HTTPException(403, "Invalid signature")
     
-    BASE_DIR = Path("/data/exports").resolve()
-    requested_path = Path(path).resolve()
-
-    if not str(requested_path).startswith(str(BASE_DIR)):
+    try:
+        requested_path = resolve_export_path(path)
+    except ValueError:
         raise HTTPException(403, "Invalid path")
 
-    if not os.path.exists(requested_path):
+    if not requested_path.exists():
         raise HTTPException(404, "File not found")
 
     return FileResponse(
         requested_path,
-        filename=os.path.basename(requested_path),
+        filename=requested_path.name,
         media_type="text/csv"
     )
 

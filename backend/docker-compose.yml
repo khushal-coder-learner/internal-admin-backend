@@ -47,6 +47,8 @@ services:
 
     env_file:
       - .env
+    volumes:
+      - exports_data:/data/exports:ro
 
     command: >
       python -m uvicorn app.main:app
@@ -104,6 +106,8 @@ services:
 
     env_file:
       - .env
+    volumes:
+      - exports_data:/data/exports
 
     command: python -m app.worker.worker
 
@@ -111,3 +115,4 @@ services:
 
 volumes:
   postgres_data:
+  exports_data:
