@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     export_dir: str = "/data/exports"
     exports_download_url: str | None = None
 
-    secret_key: str
-    jwt_secret_key: str
+    secret_key: str = "secret"
+    jwt_secret_key: str = "supersecret"
 
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
