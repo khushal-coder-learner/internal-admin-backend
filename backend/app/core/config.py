@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     test_database_url: str
     redis_url: str
     test_redis_url: str
-    export_dir: str = "/data/exports"
+    export_dir: str = "./data"
     exports_download_url: str | None = None
+    storage_backend: str = "local"
 
     secret_key: str = "secret"
     jwt_secret_key: str = "supersecret"

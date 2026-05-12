@@ -13,7 +13,7 @@ from app.utils.file_utils import generate_signed_download_url
 from app.core.logging import get_logger
 from app.services.activity_service import log_activity
 from app.services.job_service import get_user_jobs
-from app.services.exports.paths import resolve_export_path
+from app.storage import storage
 
 import time
 import hmac
@@ -167,7 +167,7 @@ def download_export(path: str, expires: int, sig: str):
         raise HTTPException(403, "Invalid signature")
     
     try:
-        requested_path = resolve_export_path(path)
+        requested_path = storage.resolve_path(path)
     except ValueError:
         raise HTTPException(403, "Invalid path")
 

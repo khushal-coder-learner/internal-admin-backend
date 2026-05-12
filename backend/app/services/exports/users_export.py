@@ -1,8 +1,6 @@
 from sqlalchemy import select
 from app.models.user import User
-from .csv_writer import write_csv_paged
-from .paths import get_export_dir
-from uuid import uuid4
+from app.services.exports.export_pipeline import generate_csv_export
 
 def generate_users_csv(db, progress_callback=None):
 
@@ -23,15 +21,9 @@ def generate_users_csv(db, progress_callback=None):
             .limit(limit)
         ).all()
 
-    file_path = get_export_dir() / f"users_export_{uuid4()}.csv"
-
-    write_csv_paged(
-        file_path,
-        headers,
-        fetch_page,
+    return generate_csv_export(
+        filename_prefix="users_export",
+        headers=headers,
+        fetch_page=fetch_page,
         progress_callback=progress_callback,
-        progress_step=100,
-        page_size=1000,
     )
-
-    return str(file_path)
