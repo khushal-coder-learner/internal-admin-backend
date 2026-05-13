@@ -10,7 +10,7 @@ class GCSStorageBackend:
         self.client = storage.Client()
 
         self.bucket = self.client.bucket(
-            "internal-admin-exports"
+            "internal-admin-system-exports"
         )
 
     def upload_file(

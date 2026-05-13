@@ -9,7 +9,6 @@ from app.models.user import User
 from app.models.job import Job, JobStatus
 from app.jobs.types import JobType
 from app.core.config import settings
-from app.utils.file_utils import generate_signed_download_url
 from app.core.logging import get_logger
 from app.services.activity_service import log_activity
 from app.services.job_service import get_user_jobs
@@ -61,9 +60,8 @@ async def get_my_jobs(
         download_url = None
 
         if job.status == JobStatus.completed and job.payload.get("file_path"):
-            download_url = generate_signed_download_url(
+            download_url = storage.generate_download_url(
                 job.payload["file_path"],
-                request=request,
             )
 
         items.append({
@@ -89,9 +87,8 @@ def get_job(job_id: str, request: Request, db: Session = Depends(get_db)):
     download_url = None
 
     if job.status == JobStatus.completed and job.payload.get("file_path"):
-        download_url = generate_signed_download_url(
+        download_url = storage.generate_download_url(
             job.payload["file_path"],
-            request=request,
         )
 
     return {
